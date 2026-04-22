@@ -46,7 +46,7 @@ The goal is not to replicate the full PostHog JavaScript SDK, but to provide a f
 ## Example (planned API)
 
 ```lua
-local PostHog = require("posthog")
+local PostHog = require("posthog-luau/lute")
 
 local client = PostHog.new({
     apiKey = "phc_xxx",
@@ -105,10 +105,10 @@ This project fills that gap by providing:
 
 ## Contributing
 
-This project is experimental. Contributions, ideas, and feedback are welcome.
+Contributions are welcome! Please read the [CONTRIBUTING](./CONTRIBUTING.md) guidelines before submitting a pull request or opening an issue.
 
 ---
 
 ## License
 
-MIT
+MIT - see [LICENSE](./LICENSE) for details.
