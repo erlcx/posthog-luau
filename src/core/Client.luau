@@ -289,15 +289,18 @@ end
 function Client.new(options: Options): ClientType
 	local normalizedOptions = normalizeOptions(options)
 
-	local self: ClientImpl = setmetatable({
-		_adapter = normalizedOptions.adapter,
-		_apiKey = normalizedOptions.apiKey,
-		_host = normalizedOptions.host,
-		_flushAt = normalizedOptions.flushAt,
-		_flushIntervalSeconds = normalizedOptions.flushIntervalSeconds,
-		_requestTimeoutSeconds = normalizedOptions.requestTimeoutSeconds,
-		_queue = {},
-	} :: ClientState, Client) :: any
+	local self: ClientImpl = setmetatable(
+		{
+			_adapter = normalizedOptions.adapter,
+			_apiKey = normalizedOptions.apiKey,
+			_host = normalizedOptions.host,
+			_flushAt = normalizedOptions.flushAt,
+			_flushIntervalSeconds = normalizedOptions.flushIntervalSeconds,
+			_requestTimeoutSeconds = normalizedOptions.requestTimeoutSeconds,
+			_queue = {},
+		} :: ClientState,
+		Client
+	) :: any
 
 	return self :: ClientType
 end
