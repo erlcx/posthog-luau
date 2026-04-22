@@ -24,6 +24,7 @@ local DEFAULT_FLUSH_INTERVAL_SECONDS = 10
 local DEFAULT_REQUEST_TIMEOUT_SECONDS = 15
 local BATCH_ENDPOINT_PATH = "/batch/"
 local FLAGS_ENDPOINT_PATH = "/flags/?v=2"
+local LIBRARY_NAME = "posthog-luau"
 
 local Client = {}
 Client.__index = Client
@@ -122,6 +123,12 @@ local function cloneProperties(properties: Properties?): Properties
 	return table.clone(properties)
 end
 
+local function withLibraryProperties(properties: Properties?): Properties
+	local resolvedProperties = cloneProperties(properties)
+	resolvedProperties["$lib"] = LIBRARY_NAME
+	return resolvedProperties
+end
+
 local function buildEventMessage(
 	adapter: RuntimeAdapter,
 	event: string,
@@ -129,7 +136,7 @@ local function buildEventMessage(
 	distinctId: string?
 ): EventMessage
 	local resolvedDistinctId = resolveDistinctId(properties, distinctId)
-	local resolvedProperties = cloneProperties(properties)
+	local resolvedProperties = withLibraryProperties(properties)
 	resolvedProperties.distinct_id = resolvedDistinctId
 
 	return {
@@ -151,6 +158,7 @@ local function buildIdentifyEventMessage(
 	return {
 		event = "$identify",
 		properties = {
+			["$lib"] = LIBRARY_NAME,
 			distinct_id = resolvedDistinctId,
 			["$set"] = personProperties,
 		},

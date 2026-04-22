@@ -71,6 +71,7 @@ Methods:
 
 Callers should supply a stable `distinctId` for `capture` and feature flag lookups.
 This keeps the client safe to use from shared server-side contexts as well as runtime clients.
+Event payloads automatically include `properties["$lib"] = "posthog-luau"` so PostHog can attribute the SDK correctly.
 
 ---
 
