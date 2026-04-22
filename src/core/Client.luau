@@ -6,6 +6,7 @@ type Options = Types.Options
 type EventMessage = Types.EventMessage
 type FeatureFlagValue = Types.FeatureFlagValue
 type ClientType = Types.Client
+type Response = Types.Response
 type ClientState = {
 	_adapter: RuntimeAdapter,
 	_apiKey: string,
@@ -29,7 +30,7 @@ Client.__index = Client
 
 local function assertNonEmptyString(value: string?, fieldName: string): string
 	assert(type(value) == "string" and value ~= "", fieldName .. " must be a non-empty string")
-	return value
+	return value :: string
 end
 
 local function toIsoTimestamp(unixTimestampSeconds: number): string
@@ -280,9 +281,10 @@ local function requestFlags(client, distinctId: string, properties: Properties?)
 		error(responseOrError)
 	end
 
-	assertSuccessfulFlagsResponse(responseOrError)
+	local response: Response = responseOrError :: Response
+	assertSuccessfulFlagsResponse(response)
 
-	local decodedBody = client._adapter.decodeJson(responseOrError.body)
+	local decodedBody = client._adapter.decodeJson(response.body)
 	return normalizeFlagsResponse(decodedBody)
 end
 
@@ -343,7 +345,8 @@ function Client.flush(self: ClientImpl)
 		error(responseOrError)
 	end
 
-	assertSuccessfulResponse(responseOrError)
+	local response: Response = responseOrError :: Response
+	assertSuccessfulResponse(response)
 	table.clear(self._queue)
 end
 

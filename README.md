@@ -69,6 +69,9 @@ Methods:
 - `getFeatureFlag(key, distinctId?, properties?)`
 - `getFeatureFlags(distinctId?, properties?)`
 
+Callers should supply a stable `distinctId` for `capture` and feature flag lookups.
+This keeps the client safe to use from shared server-side contexts as well as runtime clients.
+
 ---
 
 ## Example
@@ -81,14 +84,14 @@ local client = PostHog.new({
     host = "https://us.i.posthog.com"
 })
 
-client:capture("player_joined", {
-    level = 5,
-    mode = "ranked"
-})
-
 client:identify("player_123", {
     rank = "gold"
 })
+
+client:capture("player_joined", {
+    level = 5,
+    mode = "ranked"
+}, "player_123")
 ```
 
 ---
