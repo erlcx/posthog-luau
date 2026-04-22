@@ -1,4 +1,4 @@
-# posthog-luau
+# posthog-luau [![CI](https://github.com/erlcx/posthog-luau/actions/workflows/ci.yml/badge.svg)](https://github.com/erlcx/posthog-luau/actions/workflows/ci.yml)
 
 A lightweight PostHog client for Luau, with support for Roblox and standalone runtimes.
 
