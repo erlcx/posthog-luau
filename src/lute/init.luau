@@ -1,12 +1,23 @@
 local Core = require("./core")
 local LuteAdapter = require("@self/LuteAdapter")
+local Types = require("./core/Types")
 
-local PostHogLute = {}
+type PublicOptions = Types.PublicOptions
+type Options = Types.Options
+type Client = Types.Client
+type RuntimeModule = Types.RuntimeModule
 
-function PostHogLute.new(options)
-	local resolvedOptions = table.clone(options)
+local PostHogLute: RuntimeModule = {} :: RuntimeModule
 
-	resolvedOptions.adapter = LuteAdapter
+function PostHogLute.new(options: PublicOptions): Client
+	local resolvedOptions: Options = {
+		apiKey = options.apiKey,
+		host = options.host,
+		flushAt = options.flushAt,
+		flushIntervalSeconds = options.flushIntervalSeconds,
+		requestTimeoutSeconds = options.requestTimeoutSeconds,
+		adapter = LuteAdapter,
+	}
 
 	return Core.new(resolvedOptions)
 end

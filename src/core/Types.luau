@@ -23,12 +23,15 @@ export type RuntimeAdapter = {
 export type Properties = { [string]: any }
 export type FeatureFlagValue = boolean | string | number
 
-export type Options = {
+export type PublicOptions = {
 	apiKey: string,
 	host: string?,
 	flushAt: number?,
 	flushIntervalSeconds: number?,
 	requestTimeoutSeconds: number?,
+}
+
+export type Options = PublicOptions & {
 	adapter: RuntimeAdapter,
 }
 
@@ -54,6 +57,10 @@ export type Client = {
 		distinctId: string?,
 		properties: Properties?
 	) -> { [string]: FeatureFlagValue },
+}
+
+export type RuntimeModule = {
+	new: (options: PublicOptions) -> Client,
 }
 
 return nil

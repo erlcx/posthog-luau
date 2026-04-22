@@ -5,6 +5,17 @@ type Properties = Types.Properties
 type Options = Types.Options
 type EventMessage = Types.EventMessage
 type FeatureFlagValue = Types.FeatureFlagValue
+type ClientType = Types.Client
+type ClientState = {
+	_adapter: RuntimeAdapter,
+	_apiKey: string,
+	_host: string,
+	_flushAt: number,
+	_flushIntervalSeconds: number,
+	_requestTimeoutSeconds: number,
+	_queue: { EventMessage },
+}
+type ClientImpl = ClientType & ClientState
 
 local DEFAULT_HOST = "https://us.i.posthog.com"
 local DEFAULT_FLUSH_AT = 20
@@ -12,19 +23,6 @@ local DEFAULT_FLUSH_INTERVAL_SECONDS = 10
 local DEFAULT_REQUEST_TIMEOUT_SECONDS = 15
 local BATCH_ENDPOINT_PATH = "/batch/"
 local FLAGS_ENDPOINT_PATH = "/flags/?v=2"
-
-export type Client = typeof(setmetatable(
-	{} :: {
-		_adapter: RuntimeAdapter,
-		_apiKey: string,
-		_host: string,
-		_flushAt: number,
-		_flushIntervalSeconds: number,
-		_requestTimeoutSeconds: number,
-		_queue: { EventMessage },
-	},
-	{}
-))
 
 local Client = {}
 Client.__index = Client
@@ -288,10 +286,10 @@ local function requestFlags(client, distinctId: string, properties: Properties?)
 	return normalizeFlagsResponse(decodedBody)
 end
 
-function Client.new(options: Options)
+function Client.new(options: Options): ClientType
 	local normalizedOptions = normalizeOptions(options)
 
-	local self = setmetatable({
+	local self: ClientImpl = setmetatable({
 		_adapter = normalizedOptions.adapter,
 		_apiKey = normalizedOptions.apiKey,
 		_host = normalizedOptions.host,
@@ -299,12 +297,12 @@ function Client.new(options: Options)
 		_flushIntervalSeconds = normalizedOptions.flushIntervalSeconds,
 		_requestTimeoutSeconds = normalizedOptions.requestTimeoutSeconds,
 		_queue = {},
-	}, Client)
+	} :: ClientState, Client) :: any
 
-	return self
+	return self :: ClientType
 end
 
-function Client:capture(event: string, properties: Properties?, distinctId: string?)
+function Client.capture(self: ClientImpl, event: string, properties: Properties?, distinctId: string?)
 	table.insert(self._queue, buildEventMessage(self._adapter, event, properties, distinctId))
 
 	if #self._queue >= self._flushAt then
@@ -312,7 +310,7 @@ function Client:capture(event: string, properties: Properties?, distinctId: stri
 	end
 end
 
-function Client:identify(distinctId: string, properties: Properties?)
+function Client.identify(self: ClientImpl, distinctId: string, properties: Properties?)
 	table.insert(self._queue, buildIdentifyEventMessage(self._adapter, distinctId, properties))
 
 	if #self._queue >= self._flushAt then
@@ -320,7 +318,7 @@ function Client:identify(distinctId: string, properties: Properties?)
 	end
 end
 
-function Client:flush()
+function Client.flush(self: ClientImpl)
 	if #self._queue == 0 then
 		return
 	end
@@ -346,7 +344,12 @@ function Client:flush()
 	table.clear(self._queue)
 end
 
-function Client:getFeatureFlag(key: string, distinctId: string?, properties: Properties?): FeatureFlagValue?
+function Client.getFeatureFlag(
+	self: ClientImpl,
+	key: string,
+	distinctId: string?,
+	properties: Properties?
+): FeatureFlagValue?
 	local resolvedKey = assertNonEmptyString(key, "key")
 	local resolvedDistinctId = resolveDistinctId(properties, distinctId)
 	local flags = requestFlags(self, resolvedDistinctId, properties)
@@ -354,7 +357,11 @@ function Client:getFeatureFlag(key: string, distinctId: string?, properties: Pro
 	return flags[resolvedKey]
 end
 
-function Client:getFeatureFlags(distinctId: string?, properties: Properties?): { [string]: FeatureFlagValue }
+function Client.getFeatureFlags(
+	self: ClientImpl,
+	distinctId: string?,
+	properties: Properties?
+): { [string]: FeatureFlagValue }
 	local resolvedDistinctId = resolveDistinctId(properties, distinctId)
 	return requestFlags(self, resolvedDistinctId, properties)
 end
