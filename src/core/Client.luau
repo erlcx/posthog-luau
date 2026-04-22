@@ -11,6 +11,7 @@ local DEFAULT_FLUSH_AT = 20
 local DEFAULT_FLUSH_INTERVAL_SECONDS = 10
 local DEFAULT_REQUEST_TIMEOUT_SECONDS = 15
 local BATCH_ENDPOINT_PATH = "/batch/"
+local FLAGS_ENDPOINT_PATH = "/flags/?v=2"
 
 export type Client = typeof(setmetatable(
 	{} :: {
@@ -194,6 +195,103 @@ local function assertSuccessfulResponse(response: Types.Response)
 	end
 end
 
+local function assertSuccessfulFlagsResponse(response: Types.Response)
+	assert(type(response) == "table", "adapter.request must return a response table")
+	assert(type(response.statusCode) == "number", "adapter.request must return response.statusCode")
+
+	if response.statusCode < 200 or response.statusCode >= 300 then
+		error("PostHog flags request failed with status " .. tostring(response.statusCode))
+	end
+end
+
+local function buildFlagsRequestPayload(
+	apiKey: string,
+	distinctId: string,
+	properties: Properties?
+): { [string]: any }
+	local payload = {
+		token = apiKey,
+		distinct_id = distinctId,
+	}
+
+	if properties ~= nil and next(properties) ~= nil then
+		payload.person_properties = table.clone(properties)
+	end
+
+	return payload
+end
+
+local function resolveFlagValue(flagEntry: any): FeatureFlagValue?
+	if type(flagEntry) ~= "table" then
+		if type(flagEntry) == "boolean" or type(flagEntry) == "string" or type(flagEntry) == "number" then
+			return flagEntry
+		end
+
+		return nil
+	end
+
+	local variant = flagEntry.variant
+	if type(variant) == "boolean" or type(variant) == "string" or type(variant) == "number" then
+		return variant
+	end
+
+	local enabled = flagEntry.enabled
+	if type(enabled) == "boolean" then
+		return enabled
+	end
+
+	return nil
+end
+
+local function normalizeFlagsResponse(decodedBody: any): { [string]: FeatureFlagValue }
+	if type(decodedBody) ~= "table" then
+		error("PostHog flags response body must decode to a table")
+	end
+
+	local rawFlags = decodedBody.flags
+	if rawFlags == nil then
+		return {}
+	end
+
+	assert(type(rawFlags) == "table", "PostHog flags response must contain a table in flags")
+
+	local normalizedFlags: { [string]: FeatureFlagValue } = {}
+
+	for flagKey, flagEntry in rawFlags do
+		if type(flagKey) == "string" then
+			local resolvedValue = resolveFlagValue(flagEntry)
+			if resolvedValue ~= nil then
+				normalizedFlags[flagKey] = resolvedValue
+			end
+		end
+	end
+
+	return normalizedFlags
+end
+
+local function requestFlags(client, distinctId: string, properties: Properties?): { [string]: FeatureFlagValue }
+	local requestBody = client._adapter.encodeJson(buildFlagsRequestPayload(client._apiKey, distinctId, properties))
+
+	local ok, responseOrError = pcall(client._adapter.request, {
+		method = "POST",
+		url = joinUrl(client._host, FLAGS_ENDPOINT_PATH),
+		headers = {
+			["Content-Type"] = "application/json",
+		},
+		body = requestBody,
+		timeoutSeconds = client._requestTimeoutSeconds,
+	})
+
+	if not ok then
+		error(responseOrError)
+	end
+
+	assertSuccessfulFlagsResponse(responseOrError)
+
+	local decodedBody = client._adapter.decodeJson(responseOrError.body)
+	return normalizeFlagsResponse(decodedBody)
+end
+
 function Client.new(options: Options)
 	local normalizedOptions = normalizeOptions(options)
 
@@ -252,12 +350,17 @@ function Client:flush()
 	table.clear(self._queue)
 end
 
-function Client:getFeatureFlag(_key: string, _distinctId: string?, _properties: Properties?): FeatureFlagValue?
-	error("getFeatureFlag is not implemented yet")
+function Client:getFeatureFlag(key: string, distinctId: string?, properties: Properties?): FeatureFlagValue?
+	local resolvedKey = assertNonEmptyString(key, "key")
+	local resolvedDistinctId = resolveDistinctId(properties, distinctId)
+	local flags = requestFlags(self, resolvedDistinctId, properties)
+
+	return flags[resolvedKey]
 end
 
-function Client:getFeatureFlags(_distinctId: string?, _properties: Properties?): { [string]: FeatureFlagValue }
-	error("getFeatureFlags is not implemented yet")
+function Client:getFeatureFlags(distinctId: string?, properties: Properties?): { [string]: FeatureFlagValue }
+	local resolvedDistinctId = resolveDistinctId(properties, distinctId)
+	return requestFlags(self, resolvedDistinctId, properties)
 end
 
 return Client
