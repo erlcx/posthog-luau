@@ -16,10 +16,11 @@ return {
     },
 
     tasks = {
-        ["lint"] = "selene src",
-        ["format"] = "stylua src",
-        ["format:check"] = "stylua --check src",
-        ["ci"] = {"luu lint","luu run format:check"},
+        ["lint"] = "selene src tests examples",
+        ["test"] = "lute test",
+        ["format"] = "stylua src tests examples",
+        ["format:check"] = "stylua --check src tests examples",
+        ["ci"] = {"luu lint","luu test","luu run format:check"},
         ["gen:types"] = "lute setup --with-luaurc"
     }
 }
