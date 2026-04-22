@@ -34,9 +34,9 @@ export type Options = {
 
 export type EventMessage = {
 	event: string,
-	properties: Properties?,
-	distinctId: string?,
-	timestamp: number?,
+	properties: Properties,
+	distinctId: string,
+	timestamp: string,
 }
 
 export type Client = {

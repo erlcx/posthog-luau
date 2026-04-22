@@ -10,6 +10,7 @@ local DEFAULT_HOST = "https://us.i.posthog.com"
 local DEFAULT_FLUSH_AT = 20
 local DEFAULT_FLUSH_INTERVAL_SECONDS = 10
 local DEFAULT_REQUEST_TIMEOUT_SECONDS = 15
+local BATCH_ENDPOINT_PATH = "/batch/"
 
 export type Client = typeof(setmetatable(
 	{} :: {
@@ -30,6 +31,10 @@ Client.__index = Client
 local function assertNonEmptyString(value: string?, fieldName: string): string
 	assert(type(value) == "string" and value ~= "", fieldName .. " must be a non-empty string")
 	return value
+end
+
+local function toIsoTimestamp(unixTimestampSeconds: number): string
+	return os.date("!%Y-%m-%dT%H:%M:%SZ", unixTimestampSeconds)
 end
 
 local function assertPositiveInteger(value: number?, fieldName: string): number
@@ -94,18 +99,99 @@ local function normalizeOptions(options: Options)
 	}
 end
 
+local function resolveDistinctId(properties: Properties?, distinctId: string?): string
+	if distinctId ~= nil then
+		return assertNonEmptyString(distinctId, "distinctId")
+	end
+
+	if properties ~= nil then
+		local propertyDistinctId = properties.distinct_id
+		if propertyDistinctId ~= nil then
+			return assertNonEmptyString(propertyDistinctId, "properties.distinct_id")
+		end
+	end
+
+	error("distinctId is required")
+end
+
+local function cloneProperties(properties: Properties?): Properties
+	if properties == nil then
+		return {}
+	end
+
+	return table.clone(properties)
+end
+
 local function buildEventMessage(
 	adapter: RuntimeAdapter,
 	event: string,
 	properties: Properties?,
 	distinctId: string?
 ): EventMessage
+	local resolvedDistinctId = resolveDistinctId(properties, distinctId)
+	local resolvedProperties = cloneProperties(properties)
+	resolvedProperties.distinct_id = resolvedDistinctId
+
 	return {
 		event = assertNonEmptyString(event, "event"),
-		properties = properties,
-		distinctId = distinctId,
-		timestamp = adapter.now(),
+		properties = resolvedProperties,
+		distinctId = resolvedDistinctId,
+		timestamp = toIsoTimestamp(adapter.now()),
 	}
+end
+
+local function buildIdentifyEventMessage(
+	adapter: RuntimeAdapter,
+	distinctId: string,
+	properties: Properties?
+): EventMessage
+	local resolvedDistinctId = assertNonEmptyString(distinctId, "distinctId")
+	local personProperties = cloneProperties(properties)
+
+	return {
+		event = "$identify",
+		properties = {
+			distinct_id = resolvedDistinctId,
+			["$set"] = personProperties,
+		},
+		distinctId = resolvedDistinctId,
+		timestamp = toIsoTimestamp(adapter.now()),
+	}
+end
+
+local function joinUrl(baseUrl: string, path: string): string
+	if string.sub(baseUrl, -1) == "/" then
+		return string.sub(baseUrl, 1, -2) .. path
+	end
+
+	return baseUrl .. path
+end
+
+local function buildBatchPayload(apiKey: string, queue: { EventMessage }): { [string]: any }
+	local batch = table.create(#queue)
+
+	for index, message in queue do
+		batch[index] = {
+			event = message.event,
+			properties = table.clone(message.properties),
+			timestamp = message.timestamp,
+		}
+	end
+
+	return {
+		api_key = apiKey,
+		historical_migration = false,
+		batch = batch,
+	}
+end
+
+local function assertSuccessfulResponse(response: Types.Response)
+	assert(type(response) == "table", "adapter.request must return a response table")
+	assert(type(response.statusCode) == "number", "adapter.request must return response.statusCode")
+
+	if response.statusCode < 200 or response.statusCode >= 300 then
+		error("PostHog batch request failed with status " .. tostring(response.statusCode))
+	end
 end
 
 function Client.new(options: Options)
@@ -133,12 +219,37 @@ function Client:capture(event: string, properties: Properties?, distinctId: stri
 end
 
 function Client:identify(distinctId: string, properties: Properties?)
-	assertNonEmptyString(distinctId, "distinctId")
-	self:capture("$identify", properties, distinctId)
+	table.insert(self._queue, buildIdentifyEventMessage(self._adapter, distinctId, properties))
+
+	if #self._queue >= self._flushAt then
+		self:flush()
+	end
 end
 
 function Client:flush()
-	error("flush is not implemented yet")
+	if #self._queue == 0 then
+		return
+	end
+
+	local queuedMessages = table.clone(self._queue)
+	local requestBody = self._adapter.encodeJson(buildBatchPayload(self._apiKey, queuedMessages))
+
+	local ok, responseOrError = pcall(self._adapter.request, {
+		method = "POST",
+		url = joinUrl(self._host, BATCH_ENDPOINT_PATH),
+		headers = {
+			["Content-Type"] = "application/json",
+		},
+		body = requestBody,
+		timeoutSeconds = self._requestTimeoutSeconds,
+	})
+
+	if not ok then
+		error(responseOrError)
+	end
+
+	assertSuccessfulResponse(responseOrError)
+	table.clear(self._queue)
 end
 
 function Client:getFeatureFlag(_key: string, _distinctId: string?, _properties: Properties?): FeatureFlagValue?
