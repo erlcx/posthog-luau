@@ -1,5 +1,5 @@
-local Core = require("../core")
-local LuteAdapter = require("./LuteAdapter")
+local Core = require("./core")
+local LuteAdapter = require("@self/LuteAdapter")
 
 local PostHogLute = {}
 

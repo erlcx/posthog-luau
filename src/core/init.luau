@@ -1,4 +1,4 @@
-local Client = require("./Client")
+local Client = require("@self/Client")
 
 local PostHogCore = {}
 
