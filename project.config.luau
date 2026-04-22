@@ -19,6 +19,14 @@ return {
         ["lint"] = "selene src",
         ["format"] = "stylua src",
         ["format:check"] = "stylua --check src",
-        ["ci"] = {"luu lint", "luu run format:check"}
+
+        -- Helper for CI, runs both linting and formatting checks
+        ["ci"] = {
+            "luu lint",
+            "luu run format:check"
+        },
+
+        -- Generate lute types for the Luau Language Server
+        ["gen:types"] = "lute setup --with-luaurc"
     }
 }
