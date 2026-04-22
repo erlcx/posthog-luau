@@ -60,9 +60,6 @@ Options:
 
 - `apiKey` - required PostHog project API key
 - `host` - defaults to `https://us.i.posthog.com`
-- `flushAt` - queue size that triggers an automatic flush
-- `flushIntervalSeconds` - time-based flush interval
-- `requestTimeoutSeconds` - request timeout for network requests
 
 Methods:
 
@@ -81,10 +78,7 @@ local PostHog = require("posthog-luau/lute")
 
 local client = PostHog.new({
     apiKey = "phc_xxx",
-    host = "https://us.i.posthog.com",
-    flushAt = 20,
-    flushIntervalSeconds = 10,
-    requestTimeoutSeconds = 15
+    host = "https://us.i.posthog.com"
 })
 
 client:capture("player_joined", {
@@ -95,8 +89,6 @@ client:capture("player_joined", {
 client:identify("player_123", {
     rank = "gold"
 })
-
-client:flush()
 ```
 
 ---
