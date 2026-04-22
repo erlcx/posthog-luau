@@ -204,11 +204,7 @@ local function assertSuccessfulFlagsResponse(response: Types.Response)
 	end
 end
 
-local function buildFlagsRequestPayload(
-	apiKey: string,
-	distinctId: string,
-	properties: Properties?
-): { [string]: any }
+local function buildFlagsRequestPayload(apiKey: string, distinctId: string, properties: Properties?): { [string]: any }
 	local payload = {
 		token = apiKey,
 		distinct_id = distinctId,
