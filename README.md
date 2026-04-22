@@ -43,14 +43,48 @@ The goal is not to replicate the full PostHog JavaScript SDK, but to provide a f
 
 ---
 
-## Example (planned API)
+## Runtime Entrypoints
+
+Use the entrypoint for your runtime.
+
+- `require("posthog-luau/lute")`
+- `require("posthog-luau/roblox")`
+
+---
+
+## API
+
+Each runtime exposes the same client shape through `PostHog.new(options)`.
+
+Options:
+
+- `apiKey` - required PostHog project API key
+- `host` - defaults to `https://us.i.posthog.com`
+- `flushAt` - queue size that triggers an automatic flush
+- `flushIntervalSeconds` - time-based flush interval
+- `requestTimeoutSeconds` - request timeout for network requests
+
+Methods:
+
+- `capture(event, properties?, distinctId?)`
+- `identify(distinctId, properties?)`
+- `flush()`
+- `getFeatureFlag(key, distinctId?, properties?)`
+- `getFeatureFlags(distinctId?, properties?)`
+
+---
+
+## Example
 
 ```lua
 local PostHog = require("posthog-luau/lute")
 
 local client = PostHog.new({
     apiKey = "phc_xxx",
-    host = "https://us.i.posthog.com"
+    host = "https://us.i.posthog.com",
+    flushAt = 20,
+    flushIntervalSeconds = 10,
+    requestTimeoutSeconds = 15
 })
 
 client:capture("player_joined", {
@@ -61,6 +95,8 @@ client:capture("player_joined", {
 client:identify("player_123", {
     rank = "gold"
 })
+
+client:flush()
 ```
 
 ---

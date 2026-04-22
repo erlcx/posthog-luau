@@ -3,6 +3,7 @@ export type Request = {
 	url: string,
 	headers: { [string]: string }?,
 	body: string?,
+	timeoutSeconds: number?,
 }
 
 export type Response = {
@@ -20,11 +21,14 @@ export type RuntimeAdapter = {
 }
 
 export type Properties = { [string]: any }
+export type FeatureFlagValue = boolean | string | number
 
 export type Options = {
 	apiKey: string,
 	host: string?,
 	flushAt: number?,
+	flushIntervalSeconds: number?,
+	requestTimeoutSeconds: number?,
 	adapter: RuntimeAdapter,
 }
 
@@ -33,6 +37,23 @@ export type EventMessage = {
 	properties: Properties?,
 	distinctId: string?,
 	timestamp: number?,
+}
+
+export type Client = {
+	capture: (self: Client, event: string, properties: Properties?, distinctId: string?) -> (),
+	identify: (self: Client, distinctId: string, properties: Properties?) -> (),
+	flush: (self: Client) -> (),
+	getFeatureFlag: (
+		self: Client,
+		key: string,
+		distinctId: string?,
+		properties: Properties?
+	) -> FeatureFlagValue?,
+	getFeatureFlags: (
+		self: Client,
+		distinctId: string?,
+		properties: Properties?
+	) -> { [string]: FeatureFlagValue },
 }
 
 return nil
