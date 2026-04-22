@@ -1,6 +1,6 @@
 # posthog-luau
 
-A lightweight PostHog client for Luau, designed to work across both Roblox and general Luau runtimes.
+A lightweight PostHog client for Luau, with support for Roblox and standalone runtimes.
 
 This project aims to bring simple, reliable product analytics and feature flags to environments where official PostHog SDKs are not available.
 

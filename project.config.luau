@@ -5,7 +5,7 @@ return {
     project = {
         name = "posthog-luau",
         version = "0.0.0",
-        description = "A lightweight PostHog client for Luau environments.",
+        description = "A lightweight PostHog client for Luau, with support for Roblox and standalone runtimes.",
         author = "erlcx",
         license = "MIT"
     },
