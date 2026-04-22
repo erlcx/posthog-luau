@@ -28,7 +28,10 @@ client:capture("lute_example_ran", {
 
 local flags = client:getFeatureFlags("user_123")
 
-print("Feature flags:", flags)
+print("Feature flags:")
+for flag, value in pairs(flags) do
+	print(`- {flag}: {tostring(value)}`)
+end
 
 client:flush()
 print("Flushed queued PostHog events")
