@@ -11,7 +11,7 @@ return {
     },
 
     tasks = {
-        ["install"] = "lute pkg install",
+        ["install:pkg"] = "lute pkg install",
         ["lint"] = "selene src tests examples",
         ["test"] = "lute test",
         ["format"] = "stylua src tests examples",
