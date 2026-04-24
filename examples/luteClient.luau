@@ -1,5 +1,5 @@
 local process = require("@std/process")
-local env = require("@batteries/env")
+local env = require("@dotenv")
 env.config({
 	path = "examples/.env",
 })

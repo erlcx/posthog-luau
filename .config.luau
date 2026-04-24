@@ -11,6 +11,7 @@ return {
     },
 
     tasks = {
+        ["install"] = "lute pkg install",
         ["lint"] = "selene src tests examples",
         ["test"] = "lute test",
         ["format"] = "stylua src tests examples",
@@ -32,7 +33,8 @@ return {
             std = "~/.lute/typedefs/1.0.0/std",
             lint = "~/.lute/typedefs/1.0.0/lint",
             lute = "~/.lute/typedefs/1.0.0/lute",
-            ["posthog-luau"] = "./src"
+            ["posthog-luau"] = "./src",
+            ["dotenv"] = "./Packages/dotenv@v0.1.0/src",
         }
     }
 }
